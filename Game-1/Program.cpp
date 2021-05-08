@@ -19,7 +19,7 @@ bool Program::initAssets() {
 	SDL_GetWindowSize(window, nullptr, &h);
 	fonts.emplace_back(TTF_OpenFont("assets/ShipporiMinchoB1-Medium.ttf", h/(int)10 ) );
 	fonts.emplace_back(TTF_OpenFont("assets/ShipporiMinchoB1-Medium.ttf", h/(int)26 ) );
-	fonts.emplace_back(TTF_OpenFont("assets/Roboto-Thin.ttf", h/(int)36 ) );
+	fonts.emplace_back(TTF_OpenFont("assets/Roboto-Thin.ttf", h/(int)35 ) );
 	
 	for (size_t i = 0; i < fonts.size(); i++) {
 		if (fonts.at(i) == NULL) {

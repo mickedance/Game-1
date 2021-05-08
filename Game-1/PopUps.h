@@ -10,9 +10,12 @@ struct LoadPopUp: public WindowLayer  {
 	std::vector<Button> buttons;
 	SDL_Texture* texture = nullptr;
 	SDL_Texture* textureForFiles = nullptr;
+	SDL_Texture* textureForTextInputField = nullptr;
 	SDL_Rect fileListDstRect;
 	SDL_Rect fileListSrcRect;
+	SDL_Rect textFieldRect;
 	int heightOfEachFileTexture = 0;
+	int nrOfFilesOnTextureNow = 0;
 	int topFileIndexInScroll = 0;
 	int indexOfCurrentTexture = 0;
 	LoadPopUp(Mode* _mode, int);
@@ -21,8 +24,8 @@ struct LoadPopUp: public WindowLayer  {
 	};
 	struct Files {
 		int yPosOfTotalHeight = 0;
-		int markedFileIndex = -1;
 		int selectedFileIndex = -1;
+		int mouseOverIndex = -1;
 		std::vector<std::string> files;
 		std::string path;
 		Files(std::string);
@@ -30,7 +33,7 @@ struct LoadPopUp: public WindowLayer  {
 	Files* files = nullptr;
 	struct Scrollbar {
 		int yPosWhereMouseWasClicked = 0;
-		int status = 0; // 0= default, 1 = clicked on
+		int status = 0; //  0= default, 1 = clicked on
 		LoadPopUp* loadpopup;
 		SDL_Texture* texture;
 		SDL_Rect rect;
@@ -49,8 +52,10 @@ struct LoadPopUp: public WindowLayer  {
 	void onCancelBtn();
 	void onLoadBtn();
 	void loadFiles();
-	void scrollFiles(double);
+	void scrollFiles(double, int);
 	bool updateFileList();
+	void updateScrollbarPos(float);
+	void updateTextInputField(std::string);
 };
 
 #endif // !PopUps_h
