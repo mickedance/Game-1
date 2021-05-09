@@ -28,8 +28,13 @@ void LoadPopUp::stop() {
 	cout << "\nstop3";
 	delete scrollbar;
 	// Delete TextInputField
-	SDL_DestroyTexture(textureForTextInputField);
-	textureForTextInputField = nullptr;
+	if (textInputField->texture != NULL) {
+		SDL_DestroyTexture(textInputField->texture);
+		textInputField->texture = nullptr;
+	}if (textInputField->textMarkerTexture != NULL) {
+		SDL_DestroyTexture(textInputField->textMarkerTexture);
+		textInputField->textMarkerTexture = nullptr;
+	}
 	//Delete and remove this popup from winLayers list 
 	WindowLayer* ptr = mode->winLayers.at(index);
 	cout << "\nstop4";
@@ -110,25 +115,49 @@ void LoadPopUp::start() {
 	TTF_SizeText(mode->program->fonts[2], "", NULL, &heightOfEachFileTexture);
 
 	SDL_FreeSurface(tmpS);
-	//Create textinput field
-	textFieldRect.x = blackBoxRect.x ;
-	textFieldRect.w = (int)(blackBoxRect.w*.7);
-	textFieldRect.h = (int) (heightOfEachFileTexture * 1.5);
-	textFieldRect.y = blackBoxRect.h + blackBoxRect.y + (int)((dstRect.h-blackBoxRect.h)/4) -(int) (textFieldRect.h/2) ;
-	tmpS = SDL_CreateRGBSurface(0, textFieldRect.w, textFieldRect.h, 32, rmask, gmask, bmask, amask);
+	//Create textinput field-bg
+	SDL_Rect rect;
+	rect.w = (int) (blackBoxRect.w * .7);
+	rect.h = (int) (heightOfEachFileTexture * 1.5);
+	rect.x =blackBoxRect.x;
+	rect.y = dstRect.y + blackBoxRect.h - ( rect.h/2 );
+
+	tmpS = SDL_CreateRGBSurface(0, rect.w, rect.h, 32, rmask, gmask, bmask, amask);
 	if (tmpS == NULL) {
 		program->errorPrompt("Could not create surface for textinput field box pop up bg");
 		return;
 	}
-	SDL_FillRect(tmpS, NULL, SDL_MapRGB(tmpS->format, 80, 40, 0));
+	SDL_FillRect(tmpS, NULL, SDL_MapRGB(tmpS->format, 0, 0, 0));
 	SDL_Texture* textInputFieldTexture = SDL_CreateTextureFromSurface(program->renderer, tmpS);
 	if (textInputFieldTexture == NULL) {
-		cout << "\n" << SDL_GetError();
-
 		program->errorPrompt("Could not create texture for textinput field on pop up ");
 		return;
 	}
 	SDL_FreeSurface(tmpS);
+	//Create editable text for textfield
+	int marginRL = 2;
+
+	// textinputfield
+	textInputField = new TextInputField(this);
+	textInputField->dstRect.x = dstRect.x + rect.x + marginRL;
+	textInputField->dstRect.y = rect.y + dstRect.y + rect.h/2 - heightOfEachFileTexture/2;
+	textInputField->dstRect.w = rect.w - marginRL * 2;
+	textInputField->dstRect.h = heightOfEachFileTexture;
+	textInputField->widthOfInputField = textInputField->dstRect.w;
+	textInputField->initTextMarker();
+
+	textInputField->srcRect.x = 0;
+	textInputField->srcRect.y = 0;
+	textInputField->srcRect.h = heightOfEachFileTexture;
+	int widthOfTextTexture;
+	SDL_QueryTexture(textInputField->texture, NULL, NULL, &widthOfTextTexture, NULL);
+	//Make short text have good textfont as well
+	if (widthOfTextTexture <= textInputField->dstRect.w) {
+		cout << "\nyeah!";
+		textInputField->dstRect.w = widthOfTextTexture;
+		textInputField->srcRect.w = widthOfTextTexture;
+	}
+	//init marker
 
 	//set bg color of popupwindow
 	SDL_SetRenderDrawColor(program->renderer, 155, 55, 5, 255);
@@ -137,7 +166,7 @@ void LoadPopUp::start() {
 	SDL_RenderFillRect(program->renderer, NULL);
 	//Render title, black box etc on popup-window/box
 	SDL_RenderCopy(program->renderer, blackBoxTexture, NULL, &blackBoxRect);
-	SDL_RenderCopy(program->renderer, textInputFieldTexture, NULL, &textFieldRect);
+	SDL_RenderCopy(program->renderer, textInputFieldTexture, NULL, &rect);
 	SDL_RenderCopy(program->renderer, title, NULL, &titleRect);
 	SDL_SetRenderTarget(program->renderer, nullptr);
 	SDL_DestroyTexture(title);
@@ -304,7 +333,6 @@ bool LoadPopUp::updateFileList() {
 		SDL_DestroyTexture(fontTexture);
 		nrOfFilesOnTextureNow++;
 	}
-		updateTextInputField("Min donkey()sdlkfhlksdjhflkjsdfhlksdjhfkljsdhfklsdjhfksdjhfsdkjfh");
 	return true;
 }
 void LoadPopUp::createCancelBtn() {
@@ -351,125 +379,204 @@ void LoadPopUp::render() {
 	if (scrollbar->texture != NULL) {
 		SDL_RenderCopy(mode->program->renderer, scrollbar->texture, NULL, &scrollbar->rect);
 	}
-	if (textureForTextInputField != NULL) {
-		int marginLR = 2;
-		SDL_Rect r = textFieldRect;
-		r.h = heightOfEachFileTexture;
-		r.y +=dstRect.y + heightOfEachFileTexture - textFieldRect.h/2;
-		r.x = dstRect.x + (dstRect.w - (int) (dstRect.w * .70) ) / 2 +marginLR ;
-		r.w -= marginLR*2;
-		SDL_Rect rSrc = textFieldRect;
-		rSrc.x = 0;
-		rSrc.y = 0;
-		rSrc.h = heightOfEachFileTexture;
-		rSrc.w -= marginLR*2;
-		//SDL_QueryTexture(textureForTextInputField, NULL ,NULL, &r.w, NULL );
-		SDL_RenderCopy(mode->program->renderer, textureForTextInputField, &rSrc, &r);
-
+	if (textInputField!=nullptr && textInputField->texture != NULL) {
+		SDL_RenderCopy(mode->program->renderer, textInputField->texture, &textInputField->srcRect, &textInputField->dstRect );
 		
-
+	}
+	if (textInputField!=NULL && textInputField->status == 3 ) {
 		
+		//SDL_Delay(120);
+		auto now = std::chrono::steady_clock::now();
+
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - textInputField->markerTimerStart ).count();
+		if ((int)duration > 540) {
+			textInputField->markerTimerStart = now;
+			textInputField->markerIsVisible = !textInputField->markerIsVisible;
+		}
+		if(textInputField->markerIsVisible && textInputField->status==3 && textInputField->textMarkerTexture != nullptr)
+			SDL_RenderCopy(mode->program->renderer, textInputField->textMarkerTexture, NULL, &textInputField->textMarkerRect);
 	}
 }
 void LoadPopUp::userEvents(SDL_Event e) {
+	if(textInputField->status==0 && scrollbar->status==0)
 		mode->handleBtns(&buttons, &e);
-		//
-		//   Handle scrollbar
-		//
-		if (e.type == SDL_MOUSEBUTTONDOWN) {
-			//See if user clicked scrollbar and handle that
-			if (e.motion.x >= scrollbar->rect.x && e.motion.x <= scrollbar->rect.x + scrollbar->rect.w 
-				&& e.motion.y >= scrollbar->rect.y && e.motion.y <= scrollbar->rect.y + scrollbar->rect.h) {
-				if (scrollbar->status != 1) {
-					scrollbar->yPosWhereMouseWasClicked = e.motion.y - scrollbar->rect.y;
-					scrollbar->status = 1;
-					return;
-				}
+	//
+	//   Handle scrollbar
+	//
+	if (e.type == SDL_MOUSEBUTTONDOWN) {
+		//See if user clicked scrollbar and handle that
+		if (e.motion.x >= scrollbar->rect.x && e.motion.x <= scrollbar->rect.x + scrollbar->rect.w 
+			&& e.motion.y >= scrollbar->rect.y && e.motion.y <= scrollbar->rect.y + scrollbar->rect.h) {
+			if (scrollbar->status != 1) {
+				scrollbar->yPosWhereMouseWasClicked = e.motion.y - scrollbar->rect.y;
+				scrollbar->status = 1;
+				return;
 			}
-			// See if user clicked inside textureforfiles where files are listed
-			else if (e.motion.x >= fileListDstRect.x && e.motion.x <= fileListDstRect.x + fileListDstRect.w && e.motion.x < scrollbar->rect.x
-				&& e.motion.y >= fileListDstRect.y && e.motion.y <= fileListDstRect.y + fileListDstRect.h) {
-				// Get what file user clicked on
-				for (int i = 0; i < (int)files->files.size(); i++) {
-					int aboveTexture = topFileIndexInScroll * heightOfEachFileTexture;
-					int topOfFile = i * heightOfEachFileTexture + fileListDstRect.y - aboveTexture - fileListSrcRect.y;
-					int bottomOfFile = topOfFile + heightOfEachFileTexture;
-					if (e.motion.y >= topOfFile && e.motion.y <= bottomOfFile && files->selectedFileIndex != i) {
-						files->selectedFileIndex = i;
-						files->mouseOverIndex = -1;
-						updateFileList();
-						break;
-					}
-				}
-			}
-			//See if user clicked on inputtextfield
-			else if (e.motion.x>= textFieldRect.x + dstRect.x && e.motion.x<=  textFieldRect.x + dstRect.x + textFieldRect.w 
-				&& e.motion.y>= textFieldRect.y +  ((dstRect.h-fileListDstRect.h)/2) + ((dstRect.h - fileListDstRect.h) / 2) - textFieldRect.h 
-				&& e.motion.y <= textFieldRect.y + textFieldRect.h + ((dstRect.h - fileListDstRect.h) / 2) + ((dstRect.h - fileListDstRect.h) / 2) - textFieldRect.h) {
-				cout << "\n inside text"<< e.motion.y <<", "<< textFieldRect.y <<", "<< textFieldRect.h;
-			}
-			// otherwise user clicked outside textureoffiles and we unselect file
-			else  {
-				//Unselect file
-				if (files->selectedFileIndex != -1) {
-					cout << "\noutside";
-					files->selectedFileIndex = -1;
+		}
+		// See if user clicked inside textureforfiles where files are listed
+		else if (e.motion.x >= fileListDstRect.x && e.motion.x <= fileListDstRect.x + fileListDstRect.w && e.motion.x < scrollbar->rect.x
+			&& e.motion.y >= fileListDstRect.y && e.motion.y <= fileListDstRect.y + fileListDstRect.h) {
+			// Get what file user clicked on
+			for (int i = 0; i < (int)files->files.size(); i++) {
+				int aboveTexture = topFileIndexInScroll * heightOfEachFileTexture;
+				int topOfFile = i * heightOfEachFileTexture + fileListDstRect.y - aboveTexture - fileListSrcRect.y;
+				int bottomOfFile = topOfFile + heightOfEachFileTexture;
+				if (e.motion.y >= topOfFile && e.motion.y <= bottomOfFile && files->selectedFileIndex != i) {
+					files->selectedFileIndex = i;
+					files->mouseOverIndex = -1;
 					updateFileList();
-				}
-				if (scrollbar->status == 1) {
-					scrollbar->status = 0;
+					//Set filename to textinputfield as well
+					textInputField->text = files->files[i];
+					textInputField->update(files->files[i]);
+					break;
 				}
 			}
-
+		}
+		//See if user clicked on inputtextfield
+		else if (textInputField != nullptr && e.motion.x>= textInputField->dstRect.x  && e.motion.x<= textInputField->dstRect.x + textInputField->widthOfInputField
+			&& e.motion.y>= textInputField->dstRect.y && e.motion.y<= textInputField->dstRect.y + textInputField->dstRect.h
+			) {
+			textInputField->status = 2;
 
 		}
-		if (e.type == SDL_MOUSEMOTION) {
-			//SCrollbar
-
-			if (scrollbar->status == 1) {
-				scrollbar->rect.y = e.motion.y - scrollbar->yPosWhereMouseWasClicked;
-				// prevent from moving scrollbar to high or low
-
-				if (scrollbar->rect.y <= fileListDstRect.y)
-					scrollbar->rect.y = fileListDstRect.y;
-				else if (scrollbar->rect.y + scrollbar->rect.h >= fileListDstRect.y + fileListDstRect.h)
-					scrollbar->rect.y = fileListDstRect.y + fileListDstRect.h - scrollbar->rect.h;
-				int diff =  fileListDstRect.h - scrollbar->rect.h ;
-				double percent = 1;
-				if (diff != 0)
-					percent = ((double)scrollbar->rect.y - fileListDstRect.y ) / (double)diff;
-				scrollFiles(percent);
+		// otherwise user clicked outside textureoffiles and we unselect file
+		else  {
+			//Unselect file
+			if (files->selectedFileIndex != -1) {
+				cout << "\noutside";
+				files->selectedFileIndex = -1;
+				updateFileList();
 			}
-			// See If user is over a file in list
-			// first see if mouse is within blackBox where files are listed
-			if (e.motion.x >= fileListDstRect.x && e.motion.x <= fileListDstRect.x + fileListDstRect.w && e.motion.x< scrollbar->rect.x
-				&& e.motion.y>= fileListDstRect.y && e.motion.y <= fileListDstRect.y + fileListDstRect.h) {
-				bool update = false;
-				for (int i = 0; i < (int)files->files.size(); i++) {
-					int heightAbove = topFileIndexInScroll * heightOfEachFileTexture ;
-					int topOfFile = i * heightOfEachFileTexture - heightAbove - fileListSrcRect.y;
-					int bottomOfFile = (i+1) * heightOfEachFileTexture - heightAbove - fileListSrcRect.y;
-					// now lets se what file mouse is over
-					if (e.motion.y - fileListDstRect.y >= topOfFile && e.motion.y - fileListDstRect.y <= bottomOfFile && files->mouseOverIndex!=i && scrollbar->status!=1) {
-						files->mouseOverIndex = i;
-						updateFileList();
-						break;
+			if (scrollbar->status == 1) {
+				scrollbar->status = 0;
+			}
+			if (textInputField != nullptr && textInputField->status != 0 ) {
+				cout << "\nchange";
+				if (textInputField->status == 3) {
+					textInputField->srcRect.x = 0;
+				}
+				textInputField->status = 0;
+				}
+		}
+
+	}
+	if (e.type == SDL_MOUSEMOTION) {
+		//SCrollbar
+		if (scrollbar->status == 1) {
+			scrollbar->rect.y = e.motion.y - scrollbar->yPosWhereMouseWasClicked;
+			// prevent from moving scrollbar to high or low
+			if (scrollbar->rect.y <= fileListDstRect.y)
+				scrollbar->rect.y = fileListDstRect.y;
+			else if (scrollbar->rect.y + scrollbar->rect.h >= fileListDstRect.y + fileListDstRect.h)
+				scrollbar->rect.y = fileListDstRect.y + fileListDstRect.h - scrollbar->rect.h;
+			int diff =  fileListDstRect.h - scrollbar->rect.h ;
+			double percent = 1;
+			if (diff != 0)
+				percent = ((double)scrollbar->rect.y - fileListDstRect.y ) / (double)diff;
+			scrollFiles(percent);
+		}
+		// See If user is over a file in list
+		// first see if mouse is within blackBox where files are listed
+		if (e.motion.x >= fileListDstRect.x && e.motion.x <= fileListDstRect.x + fileListDstRect.w && e.motion.x< scrollbar->rect.x
+			&& e.motion.y>= fileListDstRect.y && e.motion.y <= fileListDstRect.y + fileListDstRect.h) {
+			bool update = false;
+			for (int i = 0; i < (int)files->files.size(); i++) {
+				int heightAbove = topFileIndexInScroll * heightOfEachFileTexture ;
+				int topOfFile = i * heightOfEachFileTexture - heightAbove - fileListSrcRect.y;
+				int bottomOfFile = (i+1) * heightOfEachFileTexture - heightAbove - fileListSrcRect.y;
+				// now lets se what file mouse is over
+				if (e.motion.y - fileListDstRect.y >= topOfFile && e.motion.y - fileListDstRect.y <= bottomOfFile && files->mouseOverIndex!=i && scrollbar->status!=1) {
+					files->mouseOverIndex = i;
+					updateFileList();
+					break;
+				}
+			}
+		}
+		// see if mouse is over textinputField
+		else {				
+			if (textInputField != nullptr && files->mouseOverIndex == -1 ) {
+				if (e.motion.x >= textInputField->dstRect.x && e.motion.x <= textInputField->dstRect.x + textInputField->widthOfInputField
+					&& e.motion.y >= textInputField->dstRect.y && e.motion.y <= textInputField->dstRect.y + textInputField->dstRect.h) {
+					if (textInputField->status != 1 ) {
+						if(textInputField->status!=3)
+							textInputField->status = 1;
+						SDL_SetCursor(mode->program->ibeamCursor);
+					}
+					}
+				else {
+					if (textInputField->status != 0 ) {
+
+						if( textInputField->status != 3)
+							textInputField->status = 0;
+						SDL_SetCursor(mode->program->cursor);
 					}
 				}
-			}//If mouse is outside textureForFiles
-			else if (files->mouseOverIndex != -1) {
+			}
+			//If mouse is outside textureForFiles
+			if (files->mouseOverIndex != -1) {
 				files->mouseOverIndex = -1;
 				updateFileList();
 			}
 		}
-		if (e.type == SDL_MOUSEWHEEL) {
-			scrollFiles(0, e.wheel.y*-1);
+		
+	}
+	if (e.type == SDL_MOUSEWHEEL) {
+		scrollFiles(0, e.wheel.y*-1);
+	}
+	if (e.type == SDL_MOUSEBUTTONUP) {
+		//If user clicked inside textinputfield we have to enable user to edit the text of filename
+		if (textInputField != nullptr && textInputField->status == 2) {
+			textInputField->status = 3;
+			cout << "\nclickup";
+			textInputField->markerTimerStart = std::chrono::steady_clock::now() -std::chrono::milliseconds(5000);
+			textInputField->markerIsVisible = false;
+			SDL_QueryTexture(textInputField->texture, NULL, NULL, &textInputField->srcRect.x, NULL);
+			textInputField->srcRect.x -= textInputField->dstRect.w;
+		}//outside of textinputfield
+		else if(textInputField != nullptr){
+			textInputField->status = 0;
 		}
-		if (e.type == SDL_MOUSEBUTTONUP) {
-			// disable scroll of scrollbar
-			if (scrollbar->status == 1)
-				scrollbar->status = 0;
+		// disable scroll of scrollbar
+		if (scrollbar->status == 1)
+			scrollbar->status = 0;
+	}
+
+
+	/*
+							KEYBOARD EVENTS!!!!
+
+	*/
+	if (e.type == SDL_TEXTINPUT) {
+		// textfield is editable/has status as active
+		if (textInputField->status == 3) {
+			std::string text = textInputField->tmpText;
+			text.insert((int)textInputField->tmpText.size() - textInputField->posFromEnd, e.text.text);
+			textInputField->update(text);
+			textInputField->markerIsVisible = true;
 		}
+	}
+	if (e.type == SDL_KEYDOWN) {
+		if(textInputField->status==3 && e.key.keysym.sym == SDLK_BACKSPACE && textInputField->tmpText.size() > 0){
+			textInputField->update( textInputField->tmpText.erase( textInputField->tmpText.size() - textInputField->posFromEnd-1 ,1 )  ) ;
+		}
+		else if (textInputField->status == 3 && e.key.keysym.sym == SDLK_DELETE && textInputField->tmpText.size()>0 && textInputField->posFromEnd!=0) {
+			if (textInputField->posFromEnd >0)
+				textInputField->posFromEnd--;
+			textInputField->update(textInputField->tmpText.erase(textInputField->tmpText.size() - textInputField->posFromEnd-1, 1));
+
+		}
+		//change pos of textmarker in text with arrow Left and Right key
+		else if (textInputField->status == 3 && e.key.keysym.sym == SDLK_LEFT) {
+			if(textInputField->posFromEnd < (int)textInputField->tmpText.size())
+			textInputField->posFromEnd++;
+			textInputField->update(textInputField->tmpText);
+		}
+		else if (textInputField->status == 3 && e.key.keysym.sym == SDLK_RIGHT) {
+			if(textInputField->posFromEnd>0)
+				textInputField->posFromEnd--;
+			textInputField->update(textInputField->tmpText);
+		}
+	}
 }
 
 void LoadPopUp::onCancelBtn() {
@@ -480,11 +587,75 @@ void LoadPopUp::onLoadBtn() {
 	//cout << "\nonload: "<< files->selectedFileIndex<<", "<<  files->files[files->selectedFileIndex];
 	
 }
-void LoadPopUp::updateTextInputField(std::string file) {
-	SDL_Color color = { 255,255,255 };
-	SDL_Surface* s = TTF_RenderText_Blended(mode->program->fonts[2], file.c_str(), color);
-	textureForTextInputField = SDL_CreateTextureFromSurface(mode->program->renderer, s);
+void LoadPopUp::TextInputField::initTextMarker() {
+	update("");
+	Uint32 rmask, gmask, bmask, amask;
+	loadpopup->mode->program->getRGBAmask(&rmask, &gmask, &bmask, &amask);
+	textMarkerRect.w = 1;
+	
+	SDL_QueryTexture(texture, NULL, NULL,  &textMarkerRect.x, NULL);
+	textMarkerRect.w  =1 ;
+	textMarkerRect.h = loadpopup->textInputField->dstRect.h ;
+	textMarkerRect.y = dstRect.y;
+	textMarkerRect.x = dstRect.x ;
+	//SDL_QueryTexture(texture, NULL, NULL, &textMarkerRect.x, NULL);
+	SDL_Surface* s =SDL_CreateRGBSurface(0, textMarkerRect.w, textMarkerRect.h, 32,  rmask, gmask, bmask, amask);
+	SDL_FillRect(s, NULL, SDL_MapRGB(s->format, 0, 230, 0));
+	if (s == NULL) {
+		cout << "\nerr:  " << SDL_GetError();
+		loadpopup->mode->program->errorPrompt("Could not create surface for ibeam in loadpopup");
+		return;
+	}
+	textMarkerTexture = SDL_CreateTextureFromSurface(loadpopup->mode->program->renderer, s);
+	if (textMarkerTexture == NULL) {
+		loadpopup->mode->program->errorPrompt("Could not create texture for ibeam in loadpopup");
+		return;
+	}
 	SDL_FreeSurface(s);
+}
+void LoadPopUp::TextInputField::update(std::string _tmpText) {
+	tmpText = _tmpText;
+	//Update the text 
+	SDL_Color color = { 255,255,255 };
+	if (texture != NULL)
+		SDL_DestroyTexture(texture);
+	SDL_Surface* s = TTF_RenderText_Blended(loadpopup->mode->program->fonts[2], tmpText.c_str(), color);
+	texture = SDL_CreateTextureFromSurface(loadpopup->mode->program->renderer, s);
+	SDL_FreeSurface(s);
+
+	//Update width of textures Rect
+	int newWith;
+	SDL_QueryTexture(texture, NULL, NULL, &newWith, NULL);
+	if (newWith < widthOfInputField) {
+		//if newwith is smaller than textinputfields width
+		srcRect.w = newWith;
+		dstRect.w = newWith;
+		srcRect.x = 0;
+	}
+	else {
+		//if newwith is greater or equal to textinputfields width
+		// We crop text to textinputfields width and make last char visible by scrolling and chaning x-Pos
+		srcRect.w = widthOfInputField;
+		dstRect.w = widthOfInputField;
+		srcRect.x = newWith - widthOfInputField;
+	}
+	//Update markerPosition
+	int fontW;
+	std::string textToCheckWidth = tmpText.substr(0, tmpText.size() - posFromEnd);
+	TTF_SizeText(loadpopup->mode->program->fonts[2], textToCheckWidth.c_str(), &fontW, NULL);
+	textMarkerRect.x = dstRect.x +fontW+1 - srcRect.x;
+	//Prevent marker from going outside of blackbox to left
+	if (textMarkerRect.x <= dstRect.x) {
+		 int widthToRigthOfMarker;
+		 std::string t = tmpText.substr(tmpText.size() - posFromEnd, tmpText.size());
+		 TTF_SizeText(loadpopup->mode->program->fonts[2], t.c_str(), &widthToRigthOfMarker, NULL);
+		 int widthWholeText;
+		 SDL_QueryTexture(texture, NULL, NULL, &widthWholeText, NULL);
+		 srcRect.x = widthWholeText - widthToRigthOfMarker;
+		 textMarkerRect.x = dstRect.x;
+	}
+	markerTimerStart = std::chrono::steady_clock::now() - std::chrono::milliseconds(5000);
+	markerIsVisible = false;
 }
 LoadPopUp::Files::Files(std::string _path) {
 	path = _path;

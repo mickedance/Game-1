@@ -6,6 +6,7 @@ struct Inputs;
 struct Program {
 	SDL_Cursor* cursor;
 	SDL_Cursor* handCursor;
+	SDL_Cursor* ibeamCursor;
 	bool keepRunning = true;
 	SDL_Window* window;
 	SDL_Renderer* renderer;

@@ -2,6 +2,7 @@
 #define PopUps_h
 #include "WindowLayer.h"
 #include "Includes.h"
+#include <chrono>
 struct Mode;
 struct Button;
 struct LoadPopUp: public WindowLayer  {
@@ -10,10 +11,9 @@ struct LoadPopUp: public WindowLayer  {
 	std::vector<Button> buttons;
 	SDL_Texture* texture = nullptr;
 	SDL_Texture* textureForFiles = nullptr;
-	SDL_Texture* textureForTextInputField = nullptr;
 	SDL_Rect fileListDstRect;
 	SDL_Rect fileListSrcRect;
-	SDL_Rect textFieldRect;
+	
 	int heightOfEachFileTexture = 0;
 	int nrOfFilesOnTextureNow = 0;
 	int topFileIndexInScroll = 0;
@@ -33,13 +33,34 @@ struct LoadPopUp: public WindowLayer  {
 	Files* files = nullptr;
 	struct Scrollbar {
 		int yPosWhereMouseWasClicked = 0;
-		int status = 0; //  0= default, 1 = clicked on
+		int status = 0; //  0= default, 1 = mouse over, 2= clicked on
 		LoadPopUp* loadpopup;
 		SDL_Texture* texture;
 		SDL_Rect rect;
 		Scrollbar(LoadPopUp*);
 		void init();
 	};
+	struct TextInputField {
+		int status = 0; // 0 = default, 1 = mouse over, 2= mouse down, 3 = active
+		LoadPopUp* loadpopup = nullptr;
+		int widthOfInputField = 0;
+		SDL_Rect dstRect;
+		SDL_Rect srcRect;
+		SDL_Rect textMarkerRect;
+		SDL_Texture* textMarkerTexture = nullptr;
+		bool markerIsVisible = false;
+		std::chrono::time_point<std::chrono::steady_clock> markerTimerStart;
+		SDL_Texture* texture = nullptr;
+		std::string text;
+		std::string tmpText;
+		int posFromEnd = 0;
+		void update(std::string);
+		void initTextMarker();
+		TextInputField(LoadPopUp* _loadpopup) {
+			loadpopup = _loadpopup;
+		}
+	};
+	TextInputField* textInputField = nullptr;
 	Scrollbar* scrollbar;
 	virtual void start();
 	virtual void stop();
@@ -55,7 +76,6 @@ struct LoadPopUp: public WindowLayer  {
 	void scrollFiles(double, int);
 	bool updateFileList();
 	void updateScrollbarPos(float);
-	void updateTextInputField(std::string);
 };
 
 #endif // !PopUps_h

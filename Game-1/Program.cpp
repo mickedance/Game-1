@@ -38,6 +38,11 @@ bool Program::initAssets() {
 		errorPrompt("could not create hand cursor" );
 		return false;
 	}
+	ibeamCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
+	if (ibeamCursor == NULL) {
+		errorPrompt("Could not create ibeam cursor");
+		return false;
+	}
 	return true;
 }
 bool Program::initSDL() {

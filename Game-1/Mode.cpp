@@ -32,8 +32,9 @@ void Mode::handleBtns(std::vector<Button>* buttons, SDL_Event* e) {
 			break;
 		}
 	}
-	if (cursor == 1)
+	if (cursor == 1) {
 		SDL_SetCursor(program->cursor);
+	}
 	else if (cursor == 2)
 		SDL_SetCursor(program->handCursor);
 }
