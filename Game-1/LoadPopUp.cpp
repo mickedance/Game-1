@@ -5,28 +5,26 @@
 #include <filesystem>
 
 using std::cout;
-LoadPopUp::LoadPopUp(Mode* _mode, int _index): WindowLayer(_mode, _index) {
-
+LoadPopUp::LoadPopUp(std::string _title, Mode* _mode, int _index): WindowLayer(_mode, _index) {
+	title = _title;
 }
 void LoadPopUp::stop() {
 	//Destroy texture of buttons and popup's texture
-	cout << "\nstop0";
 
 	for (auto& b : buttons) {
 		SDL_DestroyTexture(b.texture);
 		b.texture = nullptr;
 	}
-	cout << "\nstop1";
+	buttons.clear();
 	SDL_DestroyTexture(texture);
 	texture = nullptr;
 	// Deleete files
-	cout << "\nstop2";
 	delete files;
 	SDL_DestroyTexture(textureForFiles);
 	//Delete scrollbar
 	SDL_DestroyTexture(scrollbar->texture);
-	cout << "\nstop3";
 	delete scrollbar;
+	scrollbar = nullptr;
 	// Delete TextInputField
 	if (textInputField->texture != NULL) {
 		SDL_DestroyTexture(textInputField->texture);
@@ -37,10 +35,9 @@ void LoadPopUp::stop() {
 	}
 	//Delete and remove this popup from winLayers list 
 	WindowLayer* ptr = mode->winLayers.at(index);
-	cout << "\nstop4";
 	mode->winLayers.erase(mode->winLayers.begin() + index );
 	delete ptr;
-	
+	textInputField = nullptr;
 	
 }
 
@@ -52,7 +49,7 @@ void LoadPopUp::start() {
 	Program* program = mode->program;
 	// Title of popup
 	SDL_Color textColor = { 255,255,255,255 };
-	SDL_Surface* s = TTF_RenderText_Blended(program->fonts[1], "Load Level", textColor );
+	SDL_Surface* s = TTF_RenderText_Blended(program->fonts[1], title.c_str(), textColor );
 	if (s == NULL) {
 		program->errorPrompt("Could not create surface for title of load pop up");
 		return;
@@ -183,6 +180,7 @@ void LoadPopUp::start() {
 	fileListDstRect.y += dstRect.y;
 	files = new Files("levels/");
 	loadFiles();
+	cout << "\nload start";
 }
 void LoadPopUp::loadFiles() {
 	//see if directory exists, otherwise we create it
@@ -342,6 +340,7 @@ void LoadPopUp::createCancelBtn() {
 void LoadPopUp::createButton(std::string title, std::string size, std::function<void()> func) {
 	buttons.emplace_back(title, mode->program, "1/36");
 	buttons.at(buttons.size() - 1).doAction = func;
+	cout << "\n  new btn"<< title;
 }
 void LoadPopUp::createLoadBtn() {
 	createButton("Load", "1/42", [this]() { this->onLoadBtn(); });
@@ -398,8 +397,19 @@ void LoadPopUp::render() {
 	}
 }
 void LoadPopUp::userEvents(SDL_Event e) {
-	if(textInputField->status==0 && scrollbar->status==0)
-		mode->handleBtns(&buttons, &e);
+
+	//Handle buttons
+	bool stop = false;
+	if(scrollbar->status==0)
+		if (textInputField->status == 0 || textInputField->status==3) {
+			int status = mode->handleBtns(&buttons, &e);
+			if (status >= 0)
+				stop = true;
+			
+		}
+	if (stop)
+		return;
+	cout << "\nafter";
 	//
 	//   Handle scrollbar
 	//
@@ -426,7 +436,7 @@ void LoadPopUp::userEvents(SDL_Event e) {
 					files->mouseOverIndex = -1;
 					updateFileList();
 					//Set filename to textinputfield as well
-					textInputField->text = files->files[i];
+					textInputField->tmpText = files->files[i];
 					textInputField->update(files->files[i]);
 					break;
 				}
@@ -492,9 +502,16 @@ void LoadPopUp::userEvents(SDL_Event e) {
 				}
 			}
 		}
-		// see if mouse is over textinputField
-		else {				
+		//  Mouse i outside list of files (textureForFiles)
+		else {	
+			//We unmark file that mouse was over
+			if (files->mouseOverIndex != -1) {
+				files->mouseOverIndex = -1;
+				updateFileList();
+			}
+			// Textunputfield
 			if (textInputField != nullptr && files->mouseOverIndex == -1 ) {
+				//Check if mouse is over textinputfield
 				if (e.motion.x >= textInputField->dstRect.x && e.motion.x <= textInputField->dstRect.x + textInputField->widthOfInputField
 					&& e.motion.y >= textInputField->dstRect.y && e.motion.y <= textInputField->dstRect.y + textInputField->dstRect.h) {
 					if (textInputField->status != 1 ) {
@@ -502,7 +519,7 @@ void LoadPopUp::userEvents(SDL_Event e) {
 							textInputField->status = 1;
 						SDL_SetCursor(mode->program->ibeamCursor);
 					}
-					}
+				}//Outside of textinputfield
 				else {
 					if (textInputField->status != 0 ) {
 
@@ -512,11 +529,7 @@ void LoadPopUp::userEvents(SDL_Event e) {
 					}
 				}
 			}
-			//If mouse is outside textureForFiles
-			if (files->mouseOverIndex != -1) {
-				files->mouseOverIndex = -1;
-				updateFileList();
-			}
+			
 		}
 		
 	}
@@ -528,6 +541,7 @@ void LoadPopUp::userEvents(SDL_Event e) {
 		if (textInputField != nullptr && textInputField->status == 2) {
 			textInputField->status = 3;
 			cout << "\nclickup";
+			//Make textmarker visible by changing/restarting its startime and it's visibility 
 			textInputField->markerTimerStart = std::chrono::steady_clock::now() -std::chrono::milliseconds(5000);
 			textInputField->markerIsVisible = false;
 			SDL_QueryTexture(textInputField->texture, NULL, NULL, &textInputField->srcRect.x, NULL);
@@ -537,7 +551,7 @@ void LoadPopUp::userEvents(SDL_Event e) {
 			textInputField->status = 0;
 		}
 		// disable scroll of scrollbar
-		if (scrollbar->status == 1)
+		if (scrollbar!=nullptr && scrollbar->status == 1)
 			scrollbar->status = 0;
 	}
 
@@ -580,7 +594,6 @@ void LoadPopUp::userEvents(SDL_Event e) {
 }
 
 void LoadPopUp::onCancelBtn() {
-	cout << "\ncancel";
 	stop();
 }
 void LoadPopUp::onLoadBtn() {

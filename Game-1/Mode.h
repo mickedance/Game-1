@@ -13,7 +13,8 @@ struct Mode {
 	virtual void render() =0;
 	virtual void userEvents(SDL_Event) =0;
 	int checkButtonStatus(Button*, SDL_Event*, bool);
-	void handleBtns(std::vector<Button>*, SDL_Event*);
+	int handleBtns(std::vector<Button>*, SDL_Event*);
+	void resetButtonsToDefault(std::vector<Button>* );
 };
 
 #endif // !Mode_h

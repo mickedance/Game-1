@@ -7,27 +7,34 @@ using std::cout;
 Mode::Mode(Program* _program) {
 	program = _program;
 }
-void Mode::handleBtns(std::vector<Button>* buttons, SDL_Event* e) {
+int Mode::handleBtns(std::vector<Button>* buttons, SDL_Event* e) {
 	// handle Buttons
 	int  cursor = 0; // 0 = not changed, 1= changde to default cursor, 2 = changed to handcursor
 	bool freeze = false;
-
+	int returnValue = -1;
 	for (auto& btn : *buttons)
 		if (btn.status == 3) {
 			freeze = true;
+			returnValue = 0;
 			break;
 		}
 	for (auto& b : *buttons) {
 		if (b.texture == NULL)
-			return;
-		int status = checkButtonStatus(&b, e, freeze); // 0 = break, 1= changde to cursor, 2 = change to handcursor, 3 = unfreeze curspr
+			return returnValue;
+		int status = checkButtonStatus(&b, e, freeze); 
+		if (status == 0 && b.status == 1)
+			returnValue = 0;
 		if (status == 4) {
+			returnValue = status;
 			cursor = 1;
 			break;
 		}
-		if (status == 1 && cursor != 1)
+		if (status == 1 && cursor != 1) {
+			returnValue = status;
 			cursor = 1;
+		}
 		else if (status == 2) {
+			returnValue = status;
 			cursor = 2;
 			break;
 		}
@@ -37,8 +44,10 @@ void Mode::handleBtns(std::vector<Button>* buttons, SDL_Event* e) {
 	}
 	else if (cursor == 2)
 		SDL_SetCursor(program->handCursor);
+
+	return returnValue;
 }
-int Mode::checkButtonStatus(Button* b, SDL_Event* e, bool freeze) {
+int Mode::checkButtonStatus(Button* b, SDL_Event* e, bool freeze) { 
 	if (b->texture == NULL)
 		return 0;
 	// is mouse inside or outside button
@@ -91,4 +100,10 @@ int Mode::checkButtonStatus(Button* b, SDL_Event* e, bool freeze) {
 		b->srcRect.x = 0;
 	}
 	return 0;
+}
+void Mode::resetButtonsToDefault(std::vector<Button>* buttons) {
+	for (auto& b : *buttons) {
+		b.status = 0;
+		b.srcRect.x = 0;
+	}
 }

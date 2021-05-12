@@ -145,6 +145,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="confirmPrompt.cpp" />
+    <ClCompile Include="HandleLevel.cpp" />
     <ClCompile Include="Inputs.cpp" />
     <ClCompile Include="LoadPopUp.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -152,10 +154,12 @@
     <ClCompile Include="ModeEditor.cpp" />
     <ClCompile Include="ModeMenu.cpp" />
     <ClCompile Include="Program.cpp" />
+    <ClCompile Include="SavePopUp.cpp" />
     <ClCompile Include="WindowLayer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
+    <ClInclude Include="HandleLevel.h" />
     <ClInclude Include="Includes.h" />
     <ClInclude Include="Inputs.h" />
     <ClInclude Include="Mode.h" />

@@ -3,6 +3,7 @@
 #include "ModeMenu.h"
 #include "ModeEditor.h"
 #include "Inputs.h"
+#include "HandleLevel.h"
 using std::cout;
 
 Program::Program() {
@@ -84,6 +85,10 @@ void Program::run() {
 		return;
 	if (!initAssets())
 		return;
+
+	//Handle Level objects and player
+	handleLevel = new HandleLevel(this);
+	//Modes
 	modeMenu = new ModeMenu(this);
 	modeEditor = new ModeEditor(this);
 	startMode(modeMenu);
@@ -102,7 +107,9 @@ void Program::run() {
 		TTF_CloseFont(f);
 	TTF_Quit();
 	SDL_Quit();
-	
+	delete modeMenu;
+	delete modeEditor;
+	delete handleLevel;
 }
 void Program::errorPrompt(std::string message) {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR!", message.c_str(), window);

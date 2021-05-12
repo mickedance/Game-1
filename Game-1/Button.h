@@ -8,7 +8,7 @@
 using std::cout;
 struct Button {
 	bool initialized = false;
-	int status = 0; // 0=default, 1=Hover, 2 = Clicked/down
+	int status = 0; // 0=default, 1=Hover, 2 = Clicked/down, 3
 	SDL_Rect dstRect;
 	SDL_Rect srcRect;
 	SDL_Texture* texture = nullptr;

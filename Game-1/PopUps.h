@@ -13,12 +13,12 @@ struct LoadPopUp: public WindowLayer  {
 	SDL_Texture* textureForFiles = nullptr;
 	SDL_Rect fileListDstRect;
 	SDL_Rect fileListSrcRect;
-	
+	std::string title;
 	int heightOfEachFileTexture = 0;
 	int nrOfFilesOnTextureNow = 0;
 	int topFileIndexInScroll = 0;
 	int indexOfCurrentTexture = 0;
-	LoadPopUp(Mode* _mode, int);
+	LoadPopUp(std::string, Mode* , int);
 	~LoadPopUp() {
 		std::cout << "\n dctr load";
 	};
@@ -51,7 +51,7 @@ struct LoadPopUp: public WindowLayer  {
 		bool markerIsVisible = false;
 		std::chrono::time_point<std::chrono::steady_clock> markerTimerStart;
 		SDL_Texture* texture = nullptr;
-		std::string text;
+		//std::string text;
 		std::string tmpText;
 		int posFromEnd = 0;
 		void update(std::string);
@@ -77,5 +77,41 @@ struct LoadPopUp: public WindowLayer  {
 	bool updateFileList();
 	void updateScrollbarPos(float);
 };
+/*
+
+																							SAVE POPUP
+
+*/
+struct SavePopUp : public LoadPopUp {
+	SavePopUp(std::string, Mode*, int );
+	void createSaveAsBtn();
+	void onSaveAs();
+	void saveAs();
+};
+
+/*
+																							Confirm prompt
+
+*/
+struct ConfirmPrompt: public WindowLayer {
+	Mode* mode;
+	SDL_Rect dstRect;
+	SDL_Texture* texture;
+	std::string confirmText;
+	std::vector<Button> buttons;
+	std::function<void()> doAction;
+	virtual void start() ;
+	virtual void stop() ;
+	virtual void render() ;
+	virtual void userEvents(SDL_Event) ;
+	void onConfirm();
+	void onCancel();
+	ConfirmPrompt(Mode*, int, std::string, std::function<void()>);
+	void createNewButton(std::string, std::string, std::function<void()>);
+};
+
 
 #endif // !PopUps_h
+
+
+

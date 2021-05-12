@@ -42,6 +42,15 @@
     <ClCompile Include="LoadPopUp.cpp">
       <Filter>Source Files\PopUps</Filter>
     </ClCompile>
+    <ClCompile Include="SavePopUp.cpp">
+      <Filter>Source Files\PopUps</Filter>
+    </ClCompile>
+    <ClCompile Include="confirmPrompt.cpp">
+      <Filter>Source Files\PopUps</Filter>
+    </ClCompile>
+    <ClCompile Include="HandleLevel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Includes.h">
@@ -69,6 +78,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WindowLayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HandleLevel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

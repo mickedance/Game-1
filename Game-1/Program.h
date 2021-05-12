@@ -3,6 +3,7 @@
 #include "Includes.h"
 struct Mode;
 struct Inputs;
+struct HandleLevel;
 struct Program {
 	SDL_Cursor* cursor;
 	SDL_Cursor* handCursor;
@@ -15,6 +16,7 @@ struct Program {
 	Mode* modeEditor = nullptr;
 	Mode* modePlay = nullptr;
 	Mode* currentMode = nullptr;
+	HandleLevel* handleLevel = nullptr;
 	Inputs* inputs;
 	Program();
 	void run();
